@@ -62,9 +62,9 @@ Solution:
 
 	opj.show(7,False)
 
-	#create result and save
-	result=opj.orderBy('order_revenue', ascending =False).selectExpr("concat(order_date,':', round(order_revenue,2), ':', product_name, ':', product_category_id)")
-	result.coalesce(1).write.mode("overwrite").format("text").save("/public/data/output/sol7/")
+	#create output and save
+	output=opj.orderBy('order_revenue', ascending =False).selectExpr("concat(order_date,':', round(order_revenue,2), ':', product_name, ':', product_category_id)")
+	output.coalesce(1).write.mode("overwrite").format("text").save("/public/data/output/sol7/")
 
 	#validate
 	import os
@@ -91,7 +91,7 @@ I have used dense_rank with an assumption that many products may have same reven
 	oj=spark.sql("select round(sum(oi.oi_subtotal),2) as order_revenue, oi_pid, order_date from of inner join oi on of.order_id=oi.oi_order_id group by oi.oi_pid, of.order_date")
 	oj.createOrReplaceTempView("oj")
 	
-	result=spark.sql("select concat(T.order_date, ':', T.order_revenue, ':', pf.product_name, ':', pf.product_category_id) as result from \
+	output=spark.sql("select concat(T.order_date, ':', T.order_revenue, ':', pf.product_name, ':', pf.product_category_id) as result from \
 (select * from (select *, dense_rank() over(order by order_revenue desc) as drank from oj) T1 WHERE T1.drank <=5)T \
 inner join pf on pf.pid=T.oi_pid order by T.order_revenue desc")
 

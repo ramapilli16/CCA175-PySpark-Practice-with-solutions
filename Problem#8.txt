@@ -1,0 +1,40 @@
+Problem #8
+Instructions
+	List the order Items where the order_status = 'PENDING PAYMENT' order by order_id
+Data Description
+	Data is available in HDFS location
+	Note:Download this data from https://github.com/ramapilli16/data or https://github.com/dgadiraju/data
+retail_db data information:
+	Source directories: /data/retail_db/orders
+	Source delimiter: comma(",")
+	Source Columns - orders - order_id, order_date, order_customer_id,order_status
+Output Requirements
+	Target columns: order_id, order_date, order_customer_id, order_status
+	File Format: orc
+	Place the output files in the HDFS directory
+	/user/`whoami`/problem8/solution/
+	Replace `whoami` with your OS user name
+End of Problem
+
+Solution: 
+#using Spark DF APIs
+
+	#create DFs
+	orders=spark.read.format('csv').option("delimter",",").schema("order_id int, order_date string, order_customer_id int,order_status string").load("/public/data/retail_db/orders/")
+
+	#simple logic - don't forget order by
+	output=orders.where("order_status ='PENDING_PAYMENT'").orderBy(orders.order_id.desc())
+	output.write.mode('overwrite').format('orc').save('/public/data/output/sol8/')
+
+	#validaiton
+	output.where("order_status !='PENDING_PAYMENT'") #this should be empty
+	
+	import os
+	os.system("hdfs dfs -ls /public/data/output/sol8/")
+
+	result=spark.read.format('orc').load('/public/data/output/sol8/')
+	result.where("order_status !='PENDING_PAYMENT'")
+	
+	
+		
+
