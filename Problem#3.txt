@@ -1,0 +1,58 @@
+Instructions
+	Get top 3 crime types based on number of incidents in RESIDENCE area using "Location Description"
+Data Description
+	Data is available in HDFS under /public/crime/csv
+	Download this data from https://data.cityofchicago.org/Public-Safety/Crimes-2001-to-Present/ijzp-q8t2/data
+crime data information:
+	Structure of data: (ID, Case Number, Date, Block, IUCR, Primary Type,
+	Description, Location Description, Arrst, Domestic, Beat, District, Ward,
+	Community Area, FBI Code, X Coordinate, Y Coordinate, Year, Updated on,
+	Latitude, Longitude, Location)
+	File format - text file
+	Delimiter - "," (use regex while splitting split(",(?=(?:[^\"]*\"[^\"]*\")*
+	[^\"]*$)", -1), as there are some fields with comma and enclosed using double quotes.
+Output Requirements
+	Output Fields: crime_type, incident_count
+	Output File Format: JSON
+	Delimiter: N/A
+	Compression: No
+End of Problem
+
+#Solution
+#using DF API
+	crimes=spark.read.format('csv').\
+	option("inferSchema", True).\
+	option("header", True).\
+	option("quote",'"').\
+	option("delimiter", ",").\
+	load('/public/crime/csv/')
+	
+	from pyspark.sql.functions import desc,count
+	from pyspark.sql.window import *
+
+	#filter and select needed data
+	cf=crimes.where(" `Location Description` == 'RESIDENCE' ").selectExpr("ID", "`Location Description`", "`Primary Type`")
+
+	#aggregate
+	cfa=cf.groupBy('Primary Type').agg(count('ID').alias('crimecounts'))
+
+	#window filter to top 3
+	cfw= cfa.withColumn('drank', dense_rank().over(Window.orderBy(desc('crimecounts')))).where("drank <=3").selectExpr("`Primary Type` as `Crime Type`", "crimecounts as `Number of Incidents`")
+	
+	#output and save
+	output=cfw.orderBy('Number of Incidents', ascending=False)
+	output.write.mode('overwrite').format('json').save('/public/data/output/sol3/')
+
+	#validate
+	import os
+	os.system("hdfs dfs -ls /public/data/output/sol3/")
+	os.system("hdfs dfs -cat /public/data/output/sol3/part-00000-0cf0a79a-ac03-4b2e-a672-46dc66e7044d-c000.json | more")
+
+#using SparkSQL
+	
+	crimes.createOrReplaceTempView('crimes')
+
+	output=spark.sql(" SELECT `Primary Type` as `Crime Type`, crimecounts as `Number of Incidents` FROM  \
+	(SELECT `Primary Type`, crimecounts, dense_rank() over(order by crimecounts desc) as RNK FROM \
+	(SELECT `Primary Type`, count(ID) AS crimecounts FROM crimes WHERE `Location Description`='RESIDENCE' GROUP BY `Primary Type`) T \
+	)RT WHERE RNK<=3 order by `Number of Incidents`  desc")

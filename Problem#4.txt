@@ -1,0 +1,45 @@
+Instructions
+	Convert NYSE data into parquet
+NYSE data Description
+	Data is available in local file system under /data/NYSE (ls -ltr /data/NYSE)
+	Note:Download this data from https://github.com/dgadiraju/data
+NYSE Data information:
+	Fields (stockticker:string, transactiondate:string, openprice:float,
+	highprice:float, lowprice:float, closeprice:float, volume:bigint)
+Output Requirements
+	Column Names: stockticker, transactiondate, openprice, highprice, lowprice,
+	closeprice, volume
+	Convert file format to parquet
+End of Problem
+
+#Notes: I have downloaded this data to my windows machine
+	#change the path as required
+	#load("/public/nyse/")
+	#save("/public/nyse/output/")
+
+since the input file doesn't have header. We need to interpret the data. 
+
+	spark.read.format('csv').\
+	load("C:\\SparkCourse\\CCA175\\data-master\\nyse_all\\nyse_data\\").show(5,False)
+
+	nyseDF=spark.read.format('csv').option("inferSchema", True).\
+	load("C:\\SparkCourse\\CCA175\\data-master\\nyse_all\\nyse_data\\")
+
+	nyseDF.printSchema()
+
+understand the fields and create DF with schema
+
+	nyse=spark.read.format('csv').option("inferSchema", True).\
+	schema("stockticker string, transactiondate string, openprice float, highprice float, lowprice float, closeprice float, volume bigint").\
+	load("C:\\SparkCourse\\CCA175\\data-master\\nyse_all\\nyse_data\\")
+
+#solution 
+
+	nyse=spark.read.format('csv').option("inferSchema", True).\
+	schema("stockticker string, transactiondate string, openprice float, highprice float, lowprice float, closeprice float, volume bigint").\
+	load("C:\\SparkCourse\\CCA175\\data-master\\nyse_all\\nyse_data\\")
+	
+	nyse.coalesce(1).write.mode('overwrite').format('parquet').save("C:\\SparkCourse\\CCA175\\data-master\\nyse_all\\nyse_data\\output\\")
+
+	#validate
+	spark.read.format("parquet").load("C:\\SparkCourse\\CCA175\\data-master\\nyse_all\\nyse_data\\output\\").show(5,False)

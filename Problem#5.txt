@@ -1,0 +1,62 @@
+Instructions
+	Get word count for the input data using space as delimiter (for each word, we need to get how many times it is repeated in the entire input data set)
+Data Description
+	Data is available in HDFS /public/randomtextwriter
+word count data information:
+	Number of executors should be 10
+	executor memory should be 3 GB
+	Executor cores should be 20 in total (2 per executor)
+	Number of output files should be 8
+	Avro dependency details: groupId -> com.databricks, artifactId -> sparkavro_2.10, version -> 2.0.1
+Output Requirements
+	Output File format: Avro
+	Output fields: word, count
+	Compression: Uncompressed
+End of Problem
+
+#Notes:
+	I don't have randomtextwriter file on my windows machine. 
+	So, I'm using a text file with some random words. 
+	#change the path as required
+	#load("/public/randomtextwriter")
+	
+	To save the output in avro format you need to launch your spark shell with --packages org.apache.spark:spark-avro_2.12:3.0.0
+	avro is developed by data bricks. it is not by default avilable in spark. you need to import it.
+
+#Solution: 
+	launch the spark shell like this
+	pyspark
+	–master yarn
+	–num-executors 10
+	–executor-memory 3GB
+	–executor-cores 2
+	--packages org.apache.spark:spark-avro_2.12:3.0.0
+
+
+	from pyspark.sql.functions import explode,split,count 
+	
+	#read the file
+	rt=spark.read.format('text').load("C:\\SparkCourse\\CCA175\\data-master\\nyse_all\\randomtext\\") 
+	
+	Notes: If you read text file, output will be a text column with name "value"
+	
+	>>> rt.show(5)
+	+--------------------+
+	|               value|
+	+--------------------+
+	|Offer rules: You ...|
+	+--------------------+
+
+	#use split to divide the text into words and explode to put it in multiple rows
+	rtp=rt.selectExpr("explode(split(value, ' ')) as word")
+
+	#another way
+	rtp=rt.select(explode(split("value", " ")).alias("word"))
+		
+	#output and save 
+	output=rtp.groupBy('word').agg(count('word').alias('wordcount')).orderBy('wordcount', ascending=False)
+	
+	output.coalesce(8).write.mode('overwrite').format("avro").save("C:\\SparkCourse\\CCA175\\data-master\\nyse_all\\randomtext\\output\\")
+	
+	#validate 
+	spark.read.format('avro').load("C:\\SparkCourse\\CCA175\\data-master\\nyse_all\\randomtext\\output\\").show(5,False)
