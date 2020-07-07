@@ -1,0 +1,71 @@
+Instructions
+	Get NYSE data in ascending order by date and descending order by volume
+Data Description
+	NYSE data with "," as delimiter is available in HDFS
+	Note:Download this data from https://github.com/dgadiraju/data
+NYSE data information:
+	HDFS location: /public/nyse
+	There is no header in the data
+Output Requirements
+	Save data back to HDFS
+	Column order: stockticker, transactiondate, openprice, highprice, lowprice,
+	closeprice, volume
+	File Format: text
+	Delimiter: :
+End of Problem
+
+#Notes: I have downloaded this data to my windows machine
+	#change the path as required
+	#load("/public/nyse/")
+	#save("/public/nyse/output/")
+
+since the input file doesn't have header. We need to interpret the data. 
+
+	spark.read.format('csv').\
+	load("C:\\SparkCourse\\CCA175\\data-master\\nyse_all\\nyse_data\\").show(5,False)
+
+	nyseDF=spark.read.format('csv').option("inferSchema", True).\
+	load("C:\\SparkCourse\\CCA175\\data-master\\nyse_all\\nyse_data\\")
+
+	nyseDF.printSchema()
+
+understand the fields and create DF with schema
+
+	nyse=spark.read.format('csv').option("inferSchema", True).\
+	schema("stockticker string, transactiondate string, openprice float, highprice float, lowprice float, closeprice float, volume bigint").\
+	load("C:\\SparkCourse\\CCA175\\data-master\\nyse_all\\nyse_data\\")
+
+#solution 
+	from pyspark.sql.functions import concat_ws 
+
+	output=nyse.orderBy(['transactiondate', 'volume'], ascending=[1,0]).selectExpr("concat_ws(':',stockticker, transactiondate, openprice, highprice, lowprice,closeprice, volume)")
+	output.show(5,False)
+
+	output.coalesce(1).write.mode('overwrite').format('text').\
+	save("C:\\SparkCourse\\CCA175\\data-master\\nyse_all\\nyse_data\\output\\")
+
+#alternatesolution
+	you can also refer the columns directly
+	
+	nyse=spark.read.format('csv').option("inferSchema", True).\
+	load("C:\\SparkCourse\\CCA175\\data-master\\nyse_all\\nyse_data\\")
+
+	from pyspark.sql.functions import concat_ws 
+	
+	output=nyse.orderBy(['_c1', '_c6'], ascending=[1,0]).selectExpr("concat_ws(':', _c0, _c1, _c2, _c3, _c4, _c5, _c6)")
+	output.show(5,False)
+	
+#in case if you want to save it as csv, you can avoid that concat step
+
+	output.coalesce(1).write.mode('overwrite').format('csv').option("delimiter", ":").\
+	save("C:\\SparkCourse\\CCA175\\data-master\\nyse_all\\nyse_data\\output\\")
+
+# validate the output file 
+	
+	result=spark.read.format("csv").option("delimiter", ":").load("C:\\SparkCourse\\CCA175\\data-master\\nyse_all\\nyse_data\\output\\")
+	result.show(5,False)
+
+	or this one is easy
+	spark.read.format("csv").load("C:\\SparkCourse\\CCA175\\data-master\\nyse_all\\nyse_data\\output\\").show(5,False)
+ 
+	

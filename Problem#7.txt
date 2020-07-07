@@ -35,7 +35,7 @@ Solution:
 	
 	#use show(7,False), printSchema() to check output in every step
 	#import all the necessary functions 
-	from pyspark.sql.functions import substring, sum,desc, concat, dense_rank
+	from pyspark.sql.functions import substring, sum,desc, concat, dense_rank,concat_ws
 	from pyspark.sql.window import *
 	
 	#create DFs #Note: I have not given schema for OrderItems and products as I don't need all columns.
