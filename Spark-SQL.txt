@@ -1,0 +1,53 @@
+issue spark-sql or hive command in command line not in pyspark
+
+create database rp_db_txt;
+use rp_retail_db_txt;
+
+create table orders (
+  order_id int,
+  order_date string,
+  order_customer_id int,
+  order_status string
+) row format delimited fields terminated by ','
+stored as textfile;
+load data local inpath '/data/retail_db/orders' into table orders;
+
+
+create table order_items (
+  order_item_id int,
+  order_item_order_id int,
+  order_item_product_id int,
+  order_item_quantity int,
+  order_item_subtotal float,
+  order_item_product_price float
+) row format delimited fields terminated by ','
+stored as textfile;
+
+load data inpath /public/data/retail_db/order_items/' overwrite into table order_items;
+
+overwrite -> will delete the existing data and load the data
+
+
+
+create database rp_retail_db_orc;
+use rp_retail_db_orc;
+
+create table orders (
+  order_id int,
+  order_date string,
+  order_customer_id int,
+  order_status string
+) stored as orc;
+
+insert into table orders select * from rp_retail_db_txt.orders;
+
+create table order_items (
+  order_item_id int,
+  order_item_order_id int,
+  order_item_product_id int,
+  order_item_quantity int,
+  order_item_subtotal float,
+  order_item_product_price float
+) stored as orc;
+
+insert into table order_items select * from rp_retail_db_txt.order_items;
