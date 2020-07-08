@@ -11,9 +11,7 @@ retail_db data information:
 Output Requirements
 	Target columns: order_id, order_date, order_customer_id, order_status
 	File Format: orc
-	Place the output files in the HDFS directory
-	/user/`whoami`/problem8/solution/
-	Replace `whoami` with your OS user name
+
 End of Problem
 
 Solution: 
