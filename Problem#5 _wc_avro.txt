@@ -30,8 +30,9 @@ End of Problem
 	–num-executors 10
 	–executor-memory 3GB
 	–executor-cores 2
-	--packages org.apache.spark:spark-avro_2.12:3.0.0
-
+	--packages org.apache.spark:spark-avro_2.12:3.0.0 #use this if you are using windows machine
+	#databricks --packages com.databricks:spark-avro_2.11:4.0.0 # use this for linux # inplace of avro, you need to specify com.databricks.spark.avro
+	
 
 	from pyspark.sql.functions import explode,split,count 
 	

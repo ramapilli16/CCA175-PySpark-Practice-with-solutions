@@ -54,6 +54,8 @@ spark.sql("CREATE DATABASE IF NOT EXISTS rp16")
 spark.sql("create table rp16.h1b_data(ID INT,CASE_STATUS STRING,EMPLOYER_NAME STRING,SOC_NAME STRING,JOB_TITLE STRING,FULL_TIME_POSITION STRING,PREVAILING_WAGE DOUBLE,YEAR INT,WORKSITE STRING,LONGITUDE STRING,LATITUDE STRING)")
 spark.sql("INSERT rp16.h1b_data select * from h1b_stage")
 
+#another approach if you define the columns on h1bf
+h1bf.write.mode('overwrite').saveAsTable('rp16.h1b_data')
 
 #spark-SQL
 h1b.createOrReplaceTempView('h1b')
