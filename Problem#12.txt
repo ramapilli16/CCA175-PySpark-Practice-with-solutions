@@ -1,0 +1,42 @@
+Instructions
+	Get top 5 employers for year 2016 where the status is WITHDRAWN or CERTIFIEDWITHDRAWN or DENIED
+Data Description
+	h1b data with ascii null "\0" as delimiter is available in HDFS
+	h1b data information:
+HDFS Location: /public/h1b/h1b_data
+	YEAR is 8th field in the data
+	STATUS is 2nd field in the data
+	EMPLOYER is 3rd field in the data
+	There are some LCAs for which YEAR is NA, ignore those records
+Output Requirements
+	File Format: parquet
+	Output Fields: employer_name, lca_count
+	Data needs to be in descending order by count
+End of Problem
+
+solution
+
+	from pyspark.sql.functions import count,desc, dense_rank
+	from pyspark.sql.window import *
+
+#read and create DF
+	h1b=spark.read.format("csv").option("delimiter", "\0").load('/public/h1b/h1b_data')
+
+#filter and select
+	h1bf=h1b.where("_c7=2016 AND _c1 IN ('WITHDRAWN', 'CERTIFIEDWITHDRAWN', 'DENIED')").selectExpr("_c0 as lca_id", "_C2 as employer_name")
+
+#group
+	h1bg=h1bf.groupBy('employer_name').agg(count('lca_id').alias('lca_count')).selectExpr('employer_name','lca_count') 
+
+#top 5
+	output=h1bg.withColumn('drank', dense_rank().over(Window.orderBy(desc('lca_count')))).where("drank <=5").orderBy('lca_count', ascending=False).selectExpr('employer_name','lca_count')
+
+#save
+	output.write.mode('overwrite').format('parquet').save('/user/ramapilli16/sol12/')
+
+Spark-SQL
+	h1b.createOrReplaceTempView('h1b')
+	h1bg=spark.sql("SELECT _c2 as employer_name, count(_c0) as lca_count  FROM h1b WHERE _c7=2016 AND _c1 IN ('WITHDRAWN', 'CERTIFIEDWITHDRAWN', 'DENIED') GROUP BY _c2")
+	
+	h1bg.createOrReplaceTempView('h1bg')
+	output= spark.sql("SELECT employer_name, lca_count FROM (SELECT *, dense_rank() over(order by lca_count desc) as drank FROM h1bg) T WHERE T.drank<=5 ORDER BY lca_count DESC")

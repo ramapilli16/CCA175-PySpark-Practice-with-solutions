@@ -1,0 +1,40 @@
+Instructions
+	Get number of LCAs filed for each year
+Data Description
+	h1b data with ascii null "\0" as delimiter is available in HDFS
+	h1b data information:
+HDFS Location: /public/h1b/h1b_data
+	Ignore first record which is header of the data
+	YEAR is 8th field in the data
+There are some LCAs for which YEAR is NA, ignore those records
+	Output Requirements
+	File Format: text
+	Output Fields: YEAR, NUMBER_OF_LCAS
+	Delimiter: Ascii null "\0"
+End of Problem
+
+Solution:
+	from pyspark.sql.functions import count, concat_ws
+	h1b=spark.read.format("csv").option("delimiter", "\0").load('/public/h1b/h1b_data')
+
+filter and select
+	h1bf=h1b.where("_c7 !='NA'").selectExpr("_c0 as lca_id", "_c7 as YEAR")
+
+validate -> this should be empty 
+	h1bf.where("YEAR ='NA'").show(5)
+
+output and save
+
+	output=h1bf.groupBy('YEAR').agg(count('lca_id').alias('NUMBER_OF_LCAS')).selectExpr("concat_ws('\0', YEAR, NUMBER_OF_LCAS) as result")
+
+	output.coalesce(1).write.mode('overwrite').format('text').save('/user/ramapilli16/sol10/')
+
+Validate result  
+	hdfs dfs -ls /user/ramapilli16/sol10/
+
+	hdfs dfs -cat  /user/ramapilli16/sol10/part-00000-228be0ec-5348-406c-8784-f585df5e1976-c000.txt
+
+Spark-SQL
+	h1b.createTempView("h1b")
+	output =spark.sql("select _c7 as year, count(_c0) as count from h1b where _c7!='NA' group by _c7")
+	

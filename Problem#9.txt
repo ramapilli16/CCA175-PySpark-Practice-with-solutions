@@ -1,0 +1,39 @@
+#Problem9
+Instructions
+	Remove header from h1b data
+
+Data Description
+	h1b data with ascii null "\0" as delimiter is available in HDFS
+
+h1b data information:
+
+	HDFS location: /public/h1b/h1b_data
+	First record is the header for the data
+Output Requirements
+	Remove the header from the data and save rest of the data as is
+	Data should be compressed using snappy algorithm
+
+#file doesn't contain header . It's wrong 
+
+to verify the file from spark shell 
+run the below commands 
+	import os 
+	os.system("hdfs dfs -ls /public/h1b/h1b_data")
+	os.system("hdfs dfs -cat /public/h1b/h1b_data/part-00000 | more")
+
+
+h1b=spark.read.format("csv").option("delimiter", "\0").load('/public/h1b/h1b_data')
+h1b.coalesce(1).write.mode('overwrite').option('codec', 'snappy').save('/user/ramapilli16/sol9/')
+
+In the problem they have not mentioned output format. so it will take default as parquet 
+In case if they ask for csv add below 
+.format('csv').option('delimiter', ',')
+
+To validate the solution 
+	os.system("hdfs dfs -ls /user/ramapilli16/sol9/")
+	os.system("hdfs dfs -cat /user/ramapilli16/sol9/part-00000-2d0c5d2a-c131-4a2b-8ccd-e4d9459e07b9-c000.csv.snappy| more")
+	since we have compression applied, one way to validate it by reading again 
+
+	result =spark.read.format('parquet').load('/user/ramapilli16/sol9/')
+	result.show()
+

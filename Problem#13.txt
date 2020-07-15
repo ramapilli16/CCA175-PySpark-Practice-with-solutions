@@ -1,0 +1,60 @@
+Instructions
+	Copy all h1b data from HDFS to Hive table excluding those where year is NA or
+	prevailing_wage is NA
+Data Description
+	h1b data with ascii null "\0" as delimiter is available in HDFS
+	h1b data information:
+	HDFS Location: /public/h1b/h1b_data_noheader
+Fields:
+	ID, CASE_STATUS, EMPLOYER_NAME, SOC_NAME, JOB_TITLE,FULL_TIME_POSITION, PREVAILING_WAGE, YEAR, WORKSITE, LONGITUDE,LATITUDE
+	Ignore data where PREVAILING_WAGE is NA or YEAR is NA
+	PREVAILING_WAGE is 7th field
+	YEAR is 8th field
+	Number of records matching criteria: 3002373
+Output Requirements
+	Save it in Hive Database
+	Create Database: CREATE DATABASE IF NOT EXISTS `whoami`
+	Switch Database: USE `whoami`
+	Save data to hive table h1b_data
+	
+Create table command:
+CREATE TABLE h1b_data (
+ID INT,
+CASE_STATUS STRING,
+EMPLOYER_NAME STRING,
+SOC_NAME STRING,
+JOB_TITLE STRING,
+FULL_TIME_POSITION STRING,
+PREVAILING_WAGE DOUBLE,
+YEAR INT,
+WORKSITE STRING,
+LONGITUDE STRING,
+LATITUDE STRING
+)
+
+End of Problem
+Solution:
+from pyspark.sql.functions import count
+
+#read and create DF
+	h1b=spark.read.format("csv").option("delimiter", "\0").load('/public/h1b/h1b_data_noheader')
+#filter and select
+	h1bf=h1b_raw.where("_c6!='NA' AND _c7!='NA'")
+#validate count
+	h1bf.count()
+
+spark.sql("show databases").show(5,False)
+
+spark.sql("CREATE DATABASE IF NOT EXISTS rp16")
+
+#create temporary sql table
+	h1bf.createOrReplaceTempView('h1b_stage')
+
+
+spark.sql("create table rp16.h1b_data(ID INT,CASE_STATUS STRING,EMPLOYER_NAME STRING,SOC_NAME STRING,JOB_TITLE STRING,FULL_TIME_POSITION STRING,PREVAILING_WAGE DOUBLE,YEAR INT,WORKSITE STRING,LONGITUDE STRING,LATITUDE STRING)")
+spark.sql("INSERT rp16.h1b_data select * from h1b_stage")
+
+
+#spark-SQL
+h1b.createOrReplaceTempView('h1b')
+h1b_stage=spark.sql("select _c0 as ID, _c1 as CASE_STATUS, _c2 as EMPLOYER_NAME, _c3 as SOC_NAME, _c4 as JOB_TITLE, _c5 as FULL_TIME_POSITION, _c6 as PREVAILING_WAGE, _c7 as YEAR, _c8 as WORKSITE, _c9 LONGITUDE, _c10 as LATITUDE FROM h1b WHERE _c6!='NA' AND _c7 !='NA'")

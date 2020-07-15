@@ -1,0 +1,50 @@
+These kind of problems are not in certification 
+
+Instructions
+	Export h1b data from hdfs to MySQL Database
+	Data Description
+	h1b data with ascii character "\001" as delimiter is available in HDFS
+	h1b data information:
+	HDFS Location: /public/h1b/h1b_data_to_be_exported
+Fields:
+	ID, CASE_STATUS, EMPLOYER_NAME, SOC_NAME, JOB_TITLE,
+	FULL_TIME_POSITION, PREVAILING_WAGE, YEAR, WORKSITE, LONGITUDE,	LATITUDE
+	Number of records: 3002373
+Output Requirements
+	Export data to MySQL Database
+	MySQL database is running on ms.itversity.com
+	User: h1b_user
+	Password: itversity
+	Database Name: h1b_export
+	Table Name: h1b_data_`whoami`
+	Nulls are represented as: NA
+	After export nulls should not be stored as NA in database. It should berepresented as database null
+Create table command:
+CREATE TABLE h1b_data_rp16 (
+ID INT,
+CASE_STATUS VARCHAR(50),
+EMPLOYER_NAME VARCHAR(100),
+SOC_NAME VARCHAR(100),
+JOB_TITLE VARCHAR(100),
+FULL_TIME_POSITION VARCHAR(50),
+PREVAILING_WAGE FLOAT,
+YEAR INT,
+WORKSITE VARCHAR(50),
+LONGITUDE VARCHAR(50),
+LATITUDE VARCHAR(50));
+Replace `whoami` with your OS user name
+Above create table command can be run using
+Login using mysql -u h1b_user -h ms.itversity.com -p
+When prompted enter password itversity
+Switch to database using use h1b_export
+Run above create table command by replacing `whoami` with your OS
+user name
+End of Problem
+
+
+h1b=spark.read.format("csv").option("delimiter", "\001").load('/public/h1b/h1b_data_to_be_exported/')
+h1b.createOrReplaceTempView('h1b')
+
+h1b_stage=spark.sql("select _c0 as ID, _c1 as CASE_STATUS, _c2 as EMPLOYER_NAME, _c3 as SOC_NAME, _c4 as JOB_TITLE, _c5 as FULL_TIME_POSITION, _c6 as PREVAILING_WAGE, _c7 as YEAR, _c8 as WORKSITE, _c9 LONGITUDE, _c10 as LATITUDE FROM h1b WHERE _c6!='NA' AND _c7 !='NA'")
+h1b_stage.write.format("jdbc").option('url', 'jdbc:mysql://ms.itversity.com').option('dbtable', 'h1b_export.h1b_data_rp16').option('user','h1b_user').option('password', 'itversity')
+

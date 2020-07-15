@@ -1,0 +1,48 @@
+Linux command to connect to mysql database
+mysql -h ms.itversity.com -u retail_user -p
+
+#launch the spark shell with mysql database jar files
+
+pyspark2  --master yarn --conf spark.ui.port=11111 \
+	   --jars /usr/share/java/mysql-connector-java.jar  \
+	   --driver-class-path /usr/share/java/mysql-connector-java.jar
+
+from pyspark.sql import SparkSession
+
+spark = SparkSession. \
+    builder. \
+    master('local'). \
+    appName('Create Dataframe over JDBC'). \
+    getOrCreate()
+
+orders = spark.read. \
+  format('jdbc'). \
+  option('url', 'jdbc:mysql://ms.itversity.com'). \
+  option('dbtable', 'retail_db.orders'). \
+  option('user', 'retail_user'). \
+  option('password', 'itversity'). \
+  load()
+
+orders.show()
+
+orderItems = spark.read. \
+    jdbc("jdbc:mysql://ms.itversity.com", "retail_db.order_items",
+          properties={"user": "retail_user",
+                      "password": "itversity",
+                      "numPartitions": "4",
+                      "partitionColumn": "order_item_order_id",
+                      "lowerBound": "10000",
+                      "upperBound": "20000"})
+
+orderItems.write.json('/user/training/bootcamp/pyspark/orderItemsJDBC')
+
+query = "(select order_status, count(1) from retail_db.orders group by order_status) t"
+queryData = spark.read. \
+    jdbc("jdbc:mysql://ms.itversity.com", query,
+         properties={"user": "retail_user",
+                     "password": "itversity"})
+
+queryData.show()
+
+
+orders.coalesce(1).write.mode('overwrite').format('csv').option("delimiter", ",").save('/user/ramapilli16/sol1')

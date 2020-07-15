@@ -1,0 +1,38 @@
+Instructions
+	Get number of LCAs by status for the year 2016
+Data Description
+	h1b data with ascii null "\0" as delimiter is available in HDFS
+h1b data information:
+	HDFS Location: /public/h1b/h1b_data
+	YEAR is 8th field in the data
+	STATUS is 2nd field in the data
+	There are some LCAs for which YEAR is NA, ignore those records
+Output Requirements
+	File Format: json
+	Output Field Names: year, status, count
+	Place the output files in the HDFS directory
+End of Problem
+
+Solution: 
+	from pyspark.sql.functions import count
+
+#read and create DF
+	h1b=spark.read.format("csv").option("delimiter", "\0").load('/public/h1b/h1b_data')
+
+#filter and select
+	h1bf=h1b.where("_c7 =2016").selectExpr("_c0 as lca_id", "_c1 as status", "_c7 as year")
+
+#group by
+	output=h1bf.groupBy('year', 'status').agg(count('lca_id').alias('count')).selectExpr('year', 'status', 'count')
+#save
+	output.coalesce(1).write.mode('overwrite').format('json').save('/user/ramapilli16/sol11')
+
+#validate 
+	hdfs dfs -ls /user/ramapilli16/sol11/
+
+	hdfs dfs -cat  /user/ramapilli16/sol11/part-00000-d389bd8d-7440-42f4-bc50-09da86f5e877-c000.json |more
+
+Spark-SQL
+	h1b.createTempView("h1b")
+	output =spark.sql("select _c7 as year, _c1 as status, count(_c0) as count from h1b where _c7=2016 group by _c1,_c7")
+	
